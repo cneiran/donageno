@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -18,7 +17,6 @@ header {
   text-align:center;
   position:sticky;
   top:0;
-  z-index:10;
 }
 
 .carrinho-topo {
@@ -64,7 +62,7 @@ header {
 
 .card img {
   width:100%;
-  max-height:150px;
+  height:150px;
   object-fit:cover;
   border-radius:8px;
 }
@@ -122,14 +120,6 @@ header {
   overflow-y:auto;
 }
 
-.carrinho-lateral ul {
-  list-style:none;
-}
-
-.carrinho-lateral li {
-  margin-bottom:10px;
-}
-
 .finalizar {
   width:100%;
   margin-top:20px;
@@ -140,32 +130,14 @@ header {
   border-radius:8px;
 }
 
-
-checkout {
+/* CHECKOUT */
+.checkout {
   max-width: 400px;
   margin: 30px auto;
   background: #fff;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
-
-.checkout input,
-.checkout select,
-.checkout button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.checkout button {
-  background: #16a34a;
-  color: white;
-  border: none;
-}
-
 </style>
 </head>
 
@@ -177,7 +149,7 @@ checkout {
 </header>
 
 <div class="filtros">
-  <input type="text" id="busca" placeholder="Buscar produto..." onkeyup="renderProdutos()">
+  <input type="text" id="busca" placeholder="Buscar..." onkeyup="renderProdutos()">
   <select id="categoria" onchange="renderProdutos()"></select>
   <select id="ordem" onchange="renderProdutos()">
     <option value="">Ordenar</option>
@@ -188,24 +160,37 @@ checkout {
 
 <div class="grid" id="listaProdutos"></div>
 
+<!-- CARRINHO -->
 <div class="carrinho-lateral">
   <h3>🛒 Carrinho</h3>
   <ul id="listaCarrinho"></ul>
   <p>Total: R$ <span id="total">0.00</span></p>
-  <button class="finalizar" onclick="finalizar()">Finalizar no WhatsApp</button>
+  <button class="finalizar" onclick="finalizarPedido()">Finalizar Pedido</button>
+</div>
+
+<!-- CHECKOUT -->
+<div class="checkout">
+  <h3>📦 Dados do Cliente</h3>
+  <input type="text" id="nomeCliente" placeholder="Seu nome">
+  <input type="text" id="telefone" placeholder="Telefone">
+  <select id="tipoEntrega">
+    <option value="entrega">Entrega</option>
+    <option value="retirada">Retirada</option>
+  </select>
+  <input type="text" id="endereco" placeholder="Endereço">
 </div>
 
 <script>
 const produtos = [
-  { nome:"Ovos Caipiras", preco:10, categoria:"Ovos", imagem:"https://www.mundoecologia.com.br/wp-content/uploads/2019/08/Ovos-Caipiras-6.jpg", destaque:true },
-  { nome:"Doces Caseiros", preco:15, categoria:"Doces", imagem:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTxSxB2P3-N9PD_PvXJzUQGCeg_xZImFnFZw&s", promocao:20 },
-  { nome:"Queijos Artesanais", preco:25, categoria:"Queijos", imagem:"https://content.paodeacucar.com/wp-content/uploads/2019/05/Tipos-de-queijos-artesanais-1024x683.jpg" },
-  { nome:"Mel Puro", preco:20, categoria:"Mel", imagem:"https://www.zabelefm.com.br/files/2020/10/Mel-620x400.jpg" }
+  { nome:"Ovos Caipiras", preco:10, categoria:"Ovos", imagem:"https://www.mundoecologia.com.br/wp-content/uploads/2019/08/Ovos-Caipiras-6.jpg" },
+  { nome:"Doces Caseiros", preco:15, categoria:"Doces", imagem:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTxSxB2P3", promocao:20 },
+  { nome:"Queijos", preco:25, categoria:"Queijos", imagem:"https://content.paodeacucar.com/wp-content/uploads/2019/05/Tipos-de-queijos-artesanais-1024x683.jpg" },
+  { nome:"Mel", preco:20, categoria:"Mel", imagem:"https://www.zabelefm.com.br/files/2020/10/Mel-620x400.jpg" }
 ];
 
 let carrinho = JSON.parse(localStorage.getItem("carrinho")) || [];
 
-/* CATEGORIAS AUTOMÁTICAS */
+/* categorias */
 const selectCat = document.getElementById("categoria");
 selectCat.innerHTML = `<option value="">Todas</option>`;
 [...new Set(produtos.map(p=>p.categoria))].forEach(c=>{
@@ -226,9 +211,8 @@ function renderProdutos(){
   const busca = document.getElementById("busca").value.toLowerCase();
   const cat = document.getElementById("categoria").value;
   const ordem = document.getElementById("ordem").value;
-  let lista = [...produtos];
 
-  lista = lista.filter(p =>
+  let lista = produtos.filter(p =>
     p.nome.toLowerCase().includes(busca) &&
     (cat==="" || p.categoria===cat)
   );
@@ -236,108 +220,86 @@ function renderProdutos(){
   if(ordem==="menor") lista.sort((a,b)=>a.preco-b.preco);
   if(ordem==="maior") lista.sort((a,b)=>b.preco-a.preco);
 
-  document.getElementById("listaProdutos").innerHTML = "";
-
+  let html="";
   lista.forEach(p=>{
     const precoFinal = p.promocao ? (p.preco*(1-p.promocao/100)) : p.preco;
-    document.getElementById("listaProdutos").innerHTML += `
-      <div class="card">
-        ${p.promocao ? `<div class="badge">-${p.promocao}%</div>` : ""}
-        ${p.imagem}
-        <h3>${p.nome}</h3>
-        ${p.promocao ? `<div class="preco-antigo">R$ ${p.preco.toFixed(2)}</div>` : ""}
-        <div class="preco">R$ ${precoFinal.toFixed(2)}</div>
-        <div class="controle-qtd">
-          <button onclick="alterarQtd('${p.nome}','menos')">-</button>
-          <span id="qtd-${p.nome}">0</span>
-          <button onclick="alterarQtd('${p.nome}','mais',${precoFinal})">+</button>
-        </div>
-      </div>`;
+
+    html += `
+    <div class="card">
+      ${p.promocao ? `<div class="badge">-${p.promocao}%</div>` : ""}
+      <img srcem}
+      <h3>${p.nome}</h3>
+
+      ${p.promocao ? `<div class="preco-antigo">R$ ${p.preco}</div>` : ""}
+      <div class="preco">R$ ${precoFinal.toFixed(2)}</div>
+
+      <div class="controle-qtd">
+        <button onclick="alterarQtd('${p.nome}','menos')">-</button>
+        <span id="qtd-${p.nome}">0</span>
+        <button onclick="alterarQtd('${p.nome}','mais',${precoFinal})">+</button>
+      </div>
+    </div>`;
   });
 
+  document.getElementById("listaProdutos").innerHTML = html;
   atualizarCarrinho();
 }
 
 function atualizarCarrinho(){
   let total=0, qtd=0;
-  document.getElementById("listaCarrinho").innerHTML="";
+  let html="";
+
   carrinho.forEach(i=>{
-    total+=i.preco*i.qtd;
-    qtd+=i.qtd;
-    document.getElementById("listaCarrinho").innerHTML+=`<li>${i.nome} x${i.qtd}</li>`;
-    let el=document.getElementById("qtd-"+i.nome);
-    if(el) el.textContent=i.qtd;
-  });
-  document.getElementById("total").textContent=total.toFixed(2);
-  document.getElementById("qtd").textContent=qtd;
-  localStorage.setItem("carrinho",JSON.stringify(carrinho));
-}
+    total += i.preco * i.qtd;
+    qtd += i.qtd;
 
+    html += `<li>${i.nome} x${i.qtd}</li>`;
 
-div class="checkout">
-  <h3>📦 Finalizar Pedido</h3>
-
-  <input type="text" id="nomeCliente" placeholder="Seu nome" required>
-  <input type="text" id="telefone" placeholder="Telefone (ex: 11999999999)" required>
-
-  <select id="tipoEntrega">
-    <option value="entrega">Entrega</option>
-    <option value="retirada">Retirada no local</option>
-  </select>
-
-  <input type="text" id="endereco" placeholder="Endereço (obrigatório para entrega)">
-
-  <button onclick="finalizarPedido()">Enviar Pedido</button>
-</div>
-
-
-function finalizarPedido() {
-  let nome = document.getElementById("nomeCliente").value;
-  let telefone = document.getElementById("telefone").value;
-  let tipo = document.getElementById("tipoEntrega").value;
-  let endereco = document.getElementById("endereco").value;
-
-  // ✅ Validação
-  if (!nome || !telefone) {
-    alert("Preencha nome e telefone!");
-    return;
-  }
-
-  if (tipo === "entrega" && !endereco) {
-    alert("Informe o endereço para entrega!");
-    return;
-  }
-
-  if (carrinho.length === 0) {
-    alert("Seu carrinho está vazio!");
-    return;
-  }
-
-  // ✅ Monta mensagem
-  let msg = "🛒 *Novo Pedido - DonaGeno*\n\n";
-
-  msg += "👤 Nome: " + nome + "\n";
-  msg += "📞 Telefone: " + telefone + "\n";
-  msg += "📦 Tipo: " + tipo + "\n";
-
-  if (tipo === "entrega") {
-    msg += "📍 Endereço: " + endereco + "\n";
-  }
-
-  msg += "\n📋 *Itens:*\n";
-
-  carrinho.forEach(item => {
-    msg += `- ${item.nome} x${item.qtd} - R$ ${item.preco.toFixed(2)}\n`;
+    let el = document.getElementById("qtd-"+i.nome);
+    if(el) el.textContent = i.qtd;
   });
 
-  msg += "\n💰 Total: R$ " + document.getElementById("total").textContent;
+  document.getElementById("listaCarrinho").innerHTML = html;
+  document.getElementById("total").textContent = total.toFixed(2);
+  document.getElementById("qtd").textContent = qtd;
 
-  let url = "https://wa.me/5511999999999?text=" + encodeURIComponent(msg);
-
-  window.open(url, "_blank");
+  localStorage.setItem("carrinho", JSON.stringify(carrinho));
 }
 
-window.onload=renderProdutos;
+function finalizarPedido(){
+  const nome = document.getElementById("nomeCliente").value;
+  const telefone = document.getElementById("telefone").value;
+  const tipo = document.getElementById("tipoEntrega").value;
+  const endereco = document.getElementById("endereco").value;
+
+  if(!nome || !telefone){
+    alert("Preencha nome e telefone");
+    return;
+  }
+
+  if(tipo==="entrega" && !endereco){
+    alert("Informe endereço");
+    return;
+  }
+
+  if(carrinho.length===0){
+    alert("Carrinho vazio");
+    return;
+  }
+
+  let msg = `🛒 Pedido DonaGeno\n\nNome: ${nome}\nTelefone: ${telefone}\n`;
+
+  carrinho.forEach(i=>{
+    msg += `${i.nome} x${i.qtd}\n`;
+  });
+
+  msg += `Total: R$ ${document.getElementById("total").textContent}`;
+
+  const url = "https://wa.me/5511999999999?text=" + encodeURIComponent(msg);
+  window.open(url);
+}
+
+window.onload = renderProdutos;
 </script>
 
 </body>
