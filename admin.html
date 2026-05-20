@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Painel Admin - DonaGeno</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #fdfaf6;
+  padding: 20px;
+}
+
+h1 { text-align: center; }
+
+form {
+  max-width: 500px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+button {
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lista {
+  max-width: 800px;
+  margin: 30px auto;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+}
+
+.card button {
+  width: auto;
+  margin-right: 5px;
+  background: #dc2626;
+}
+.editar {
+  background: #2563eb;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🛠 Painel Admin – DonaGeno</h1>
+
+<form onsubmit="salvarProduto(event)">
+  <input type="hidden" id="index">
+
+  <input type="text" id="nome" placeholder="Nome do produto" required>
+  <input type="number" id="preco" placeholder="Preço" required>
+  <input type="number" id="promocao" placeholder="Promoção (%)">
+  <input type="text" id="categoria" placeholder="Categoria" required>
+  <input type="text" id="imagem" placeholder="URL da imagem" required>
+
+  <button type="submit">Salvar Produto</button>
+</form>
+
+<div class="lista" id="listaProdutos"></div>
+
+<script>
+let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
+
+function salvarProduto(e) {
+  e.preventDefault();
+
+  const produto = {
+    nome: nome.value,
+    preco: Number(preco.value),
+    promocao: Number(promocao.value) || 0,
+    categoria: categoria.value,
+    imagem: imagem.value
+  };
+
+  const idx = document.getElementById("index").value;
+
+  if (idx === "") {
+    produtos.push(produto);
+  } else {
+    produtos[idx] = produto;
+  }
+
+  localStorage.setItem("produtos", JSON.stringify(produtos));
+  e.target.reset();
+  document.getElementById("index").value = "";
+  listar();
+}
+
+function listar() {
+  const lista = document.getElementById("listaProdutos");
+  lista.innerHTML = "";
+
+  produtos.forEach((p, i) => {
+    lista.innerHTML += `
+      <div class="card">
+        <strong>${p.nome}</strong><br>
+        R$ ${p.preco} | ${p.categoria} | Promo: ${p.promocao}%
+        <br><br>
+        <button class="editar" onclick="editar(${i})">Editar</button>
+        <button onclick="remover(${i})">Excluir</button>
+      </div>
+    `;
+  });
+}
+
+function editar(i) {
+  const p = produtos[i];
+  nome.value = p.nome;
+  preco.value = p.preco;
+  promocao.value = p.promocao;
+  categoria.value = p.categoria;
+  imagem.value = p.imagem;
+  document.getElementById("index").value = i;
+}
+
+function remover(i) {
+  if (confirm("Remover produto?")) {
+    produtos.splice(i, 1);
+    localStorage.setItem("produtos", JSON.stringify(produtos));
+    listar();
+  }
+}
+
+listar();
+</script>
+
+</body>
+</html>

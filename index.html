@@ -1,0 +1,344 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DonaGeno | Loja Artesanal</title>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family: Arial, sans-serif; }
+body { background:#fdfaf6; }
+
+/* HEADER */
+header {
+  background:#8b5e3c;
+  color:#fff;
+  padding:20px;
+  text-align:center;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.carrinho-topo {
+  position:absolute;
+  right:20px;
+  top:20px;
+  background:#f59e0b;
+  padding:8px 12px;
+  border-radius:8px;
+}
+
+/* FILTROS */
+.filtros {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin:20px;
+}
+
+.filtros input,
+.filtros select {
+  padding:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+/* PRODUTOS */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+  gap:20px;
+  padding:20px;
+}
+
+.card {
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  position:relative;
+}
+
+.card img {
+  width:100%;
+  max-height:150px;
+  object-fit:cover;
+  border-radius:8px;
+}
+
+.badge {
+  position:absolute;
+  top:10px;
+  left:10px;
+  background:#dc2626;
+  color:white;
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:6px;
+}
+
+.preco {
+  color:#16a34a;
+  font-weight:bold;
+}
+
+.preco-antigo {
+  text-decoration:line-through;
+  color:#999;
+  font-size:14px;
+}
+
+/* CONTROLE */
+.controle-qtd {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+}
+
+.controle-qtd button {
+  background:#16a34a;
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* CARRINHO */
+.carrinho-lateral {
+  position:fixed;
+  right:0;
+  top:0;
+  width:300px;
+  height:100%;
+  background:#fff;
+  box-shadow:-4px 0 10px rgba(0,0,0,0.2);
+  padding:20px;
+  overflow-y:auto;
+}
+
+.carrinho-lateral ul {
+  list-style:none;
+}
+
+.carrinho-lateral li {
+  margin-bottom:10px;
+}
+
+.finalizar {
+  width:100%;
+  margin-top:20px;
+  padding:12px;
+  background:#16a34a;
+  color:white;
+  border:none;
+  border-radius:8px;
+}
+
+
+checkout {
+  max-width: 400px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.checkout input,
+.checkout select,
+.checkout button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.checkout button {
+  background: #16a34a;
+  color: white;
+  border: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>DonaGeno</h1>
+  <div class="carrinho-topo">🛒 <span id="qtd">0</span></div>
+</header>
+
+<div class="filtros">
+  <input type="text" id="busca" placeholder="Buscar produto..." onkeyup="renderProdutos()">
+  <select id="categoria" onchange="renderProdutos()"></select>
+  <select id="ordem" onchange="renderProdutos()">
+    <option value="">Ordenar</option>
+    <option value="menor">Menor preço</option>
+    <option value="maior">Maior preço</option>
+  </select>
+</div>
+
+<div class="grid" id="listaProdutos"></div>
+
+<div class="carrinho-lateral">
+  <h3>🛒 Carrinho</h3>
+  <ul id="listaCarrinho"></ul>
+  <p>Total: R$ <span id="total">0.00</span></p>
+  <button class="finalizar" onclick="finalizar()">Finalizar no WhatsApp</button>
+</div>
+
+<script>
+const produtos = [
+  { nome:"Ovos Caipiras", preco:10, categoria:"Ovos", imagem:"https://www.mundoecologia.com.br/wp-content/uploads/2019/08/Ovos-Caipiras-6.jpg", destaque:true },
+  { nome:"Doces Caseiros", preco:15, categoria:"Doces", imagem:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTxSxB2P3-N9PD_PvXJzUQGCeg_xZImFnFZw&s", promocao:20 },
+  { nome:"Queijos Artesanais", preco:25, categoria:"Queijos", imagem:"https://content.paodeacucar.com/wp-content/uploads/2019/05/Tipos-de-queijos-artesanais-1024x683.jpg" },
+  { nome:"Mel Puro", preco:20, categoria:"Mel", imagem:"https://www.zabelefm.com.br/files/2020/10/Mel-620x400.jpg" }
+];
+
+let carrinho = JSON.parse(localStorage.getItem("carrinho")) || [];
+
+/* CATEGORIAS AUTOMÁTICAS */
+const selectCat = document.getElementById("categoria");
+selectCat.innerHTML = `<option value="">Todas</option>`;
+[...new Set(produtos.map(p=>p.categoria))].forEach(c=>{
+  selectCat.innerHTML += `<option value="${c}">${c}</option>`;
+});
+
+function alterarQtd(nome, acao, preco=0){
+  let item = carrinho.find(i=>i.nome===nome);
+  if(!item && acao==="mais") carrinho.push({nome,preco,qtd:1});
+  else if(item){
+    acao==="mais" ? item.qtd++ : item.qtd--;
+    if(item.qtd<=0) carrinho = carrinho.filter(i=>i.nome!==nome);
+  }
+  atualizarCarrinho();
+}
+
+function renderProdutos(){
+  const busca = document.getElementById("busca").value.toLowerCase();
+  const cat = document.getElementById("categoria").value;
+  const ordem = document.getElementById("ordem").value;
+  let lista = [...produtos];
+
+  lista = lista.filter(p =>
+    p.nome.toLowerCase().includes(busca) &&
+    (cat==="" || p.categoria===cat)
+  );
+
+  if(ordem==="menor") lista.sort((a,b)=>a.preco-b.preco);
+  if(ordem==="maior") lista.sort((a,b)=>b.preco-a.preco);
+
+  document.getElementById("listaProdutos").innerHTML = "";
+
+  lista.forEach(p=>{
+    const precoFinal = p.promocao ? (p.preco*(1-p.promocao/100)) : p.preco;
+    document.getElementById("listaProdutos").innerHTML += `
+      <div class="card">
+        ${p.promocao ? `<div class="badge">-${p.promocao}%</div>` : ""}
+        ${p.imagem}
+        <h3>${p.nome}</h3>
+        ${p.promocao ? `<div class="preco-antigo">R$ ${p.preco.toFixed(2)}</div>` : ""}
+        <div class="preco">R$ ${precoFinal.toFixed(2)}</div>
+        <div class="controle-qtd">
+          <button onclick="alterarQtd('${p.nome}','menos')">-</button>
+          <span id="qtd-${p.nome}">0</span>
+          <button onclick="alterarQtd('${p.nome}','mais',${precoFinal})">+</button>
+        </div>
+      </div>`;
+  });
+
+  atualizarCarrinho();
+}
+
+function atualizarCarrinho(){
+  let total=0, qtd=0;
+  document.getElementById("listaCarrinho").innerHTML="";
+  carrinho.forEach(i=>{
+    total+=i.preco*i.qtd;
+    qtd+=i.qtd;
+    document.getElementById("listaCarrinho").innerHTML+=`<li>${i.nome} x${i.qtd}</li>`;
+    let el=document.getElementById("qtd-"+i.nome);
+    if(el) el.textContent=i.qtd;
+  });
+  document.getElementById("total").textContent=total.toFixed(2);
+  document.getElementById("qtd").textContent=qtd;
+  localStorage.setItem("carrinho",JSON.stringify(carrinho));
+}
+
+
+div class="checkout">
+  <h3>📦 Finalizar Pedido</h3>
+
+  <input type="text" id="nomeCliente" placeholder="Seu nome" required>
+  <input type="text" id="telefone" placeholder="Telefone (ex: 11999999999)" required>
+
+  <select id="tipoEntrega">
+    <option value="entrega">Entrega</option>
+    <option value="retirada">Retirada no local</option>
+  </select>
+
+  <input type="text" id="endereco" placeholder="Endereço (obrigatório para entrega)">
+
+  <button onclick="finalizarPedido()">Enviar Pedido</button>
+</div>
+
+
+function finalizarPedido() {
+  let nome = document.getElementById("nomeCliente").value;
+  let telefone = document.getElementById("telefone").value;
+  let tipo = document.getElementById("tipoEntrega").value;
+  let endereco = document.getElementById("endereco").value;
+
+  // ✅ Validação
+  if (!nome || !telefone) {
+    alert("Preencha nome e telefone!");
+    return;
+  }
+
+  if (tipo === "entrega" && !endereco) {
+    alert("Informe o endereço para entrega!");
+    return;
+  }
+
+  if (carrinho.length === 0) {
+    alert("Seu carrinho está vazio!");
+    return;
+  }
+
+  // ✅ Monta mensagem
+  let msg = "🛒 *Novo Pedido - DonaGeno*\n\n";
+
+  msg += "👤 Nome: " + nome + "\n";
+  msg += "📞 Telefone: " + telefone + "\n";
+  msg += "📦 Tipo: " + tipo + "\n";
+
+  if (tipo === "entrega") {
+    msg += "📍 Endereço: " + endereco + "\n";
+  }
+
+  msg += "\n📋 *Itens:*\n";
+
+  carrinho.forEach(item => {
+    msg += `- ${item.nome} x${item.qtd} - R$ ${item.preco.toFixed(2)}\n`;
+  });
+
+  msg += "\n💰 Total: R$ " + document.getElementById("total").textContent;
+
+  let url = "https://wa.me/5511999999999?text=" + encodeURIComponent(msg);
+
+  window.open(url, "_blank");
+}
+
+window.onload=renderProdutos;
+</script>
+
+</body>
+</html>
